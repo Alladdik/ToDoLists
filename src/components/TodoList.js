@@ -1,89 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { Form, Button, ListGroup, Badge, Dropdown, InputGroup } from 'react-bootstrap';
 
-const TodoList = () => {
-  const [items, setItems] = useState([]);
-  const [newItem, setNewItem] = useState({
-    title: '',
-    description: '',
-    dueDate: '',
-    category: ''
-  });
+function TodoList() {
+  const [tasks, setTasks] = useState([]);
+  const [newTask, setNewTask] = useState('');
+  const [category, setCategory] = useState('Всі');
 
   useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const response = await axios.get('http://localhost:3001/api/todos');
-        setItems(response.data);
-      } catch (error) {
-        console.error('Error fetching items:', error);
-      }
+    // Завантаження завдань з сервера
+    const fetchTasks = async () => {
+      const response = await fetch('http://localhost:5000/tasks');
+      const data = await response.json();
+      setTasks(data);
     };
-    fetchItems();
+    fetchTasks();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNewItem((prevItem) => ({
-      ...prevItem,
-      [name]: value,
-    }));
+  const addTask = () => {
+    const newTaskObj = {
+      id: Date.now(),
+      text: newTask,
+      category: category,
+      completed: false,
+      priority: 'Medium',
+      dueDate: new Date().toISOString().slice(0, 10),
+    };
+    setTasks([...tasks, newTaskObj]);
+    setNewTask('');
   };
 
-  const addItem = async (e) => {
-    e.preventDefault();
-    if (newItem.title.trim() === '' || newItem.description.trim() === '') {
-      alert('Назва та опис обов’язкові');
-      return;
-    }
-
-    try {
-      const response = await axios.post('http://localhost:3001/api/todos', newItem);
-      setItems([...items, { id: response.data.id, ...newItem }]);
-      setNewItem({ title: '', description: '', dueDate: '', category: '' });
-    } catch (error) {
-      console.error('Error adding item:', error);
-    }
+  const toggleComplete = (taskId) => {
+    const updatedTasks = tasks.map(task => task.id === taskId ? { ...task, completed: !task.completed } : task);
+    setTasks(updatedTasks);
   };
 
-  const deleteItem = async (id) => {
-    try {
-      await axios.delete(`http://localhost:3001/api/todos/${id}`);
-      setItems(items.filter(item => item.id !== id));
-    } catch (error) {
-      console.error('Error deleting item:', error);
-    }
+  const deleteTask = (taskId) => {
+    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    setTasks(updatedTasks);
   };
 
   return (
     <div>
-      <h1>Todo List</h1>
-      <form onSubmit={addItem}>
-        <input type="text" name="title" placeholder="Назва" value={newItem.title} onChange={handleChange} />
-        <input type="text" name="description" placeholder="Опис" value={newItem.description} onChange={handleChange} />
-        <input type="date" name="dueDate" value={newItem.dueDate} onChange={handleChange} />
-        <select name="category" value={newItem.category} onChange={handleChange}>
-          <option value="">Виберіть категорію</option>
-          <option value="Робота">Робота</option>
-          <option value="Навчання">Навчання</option>
-          <option value="Особисте">Особисте</option>
-        </select>
-        <button type="submit">Додати завдання</button>
-      </form>
+      <h2 className="mb-4">Мій список справ</h2>
 
-      <ul>
-        {items.map((item) => (
-          <li key={item.id}>
-            <h3>{item.title}</h3>
-            <p>{item.description}</p>
-            <p>Категорія: {item.category}</p>
-            <p>Термін: {item.dueDate}</p>
-            <button onClick={() => deleteItem(item.id)}>Видалити</button>
-          </li>
+      <Form onSubmit={(e) => e.preventDefault()}>
+        <InputGroup className="mb-3">
+          <Form.Control
+            type="text"
+            placeholder="Нове завдання"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+          />
+          <Dropdown onSelect={setCategory}>
+            <Dropdown.Toggle variant="success" id="dropdown-basic">
+              {category}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item eventKey="Робота">Робота</Dropdown.Item>
+              <Dropdown.Item eventKey="Навчання">Навчання</Dropdown.Item>
+              <Dropdown.Item eventKey="Особисте">Особисте</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+          <Button variant="primary" onClick={addTask}>Додати</Button>
+        </InputGroup>
+      </Form>
+
+      <ListGroup>
+        {tasks.map(task => (
+          <ListGroup.Item key={task.id} className="d-flex justify-content-between align-items-center">
+            <span style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>
+              {task.text} <Badge bg="secondary">{task.category}</Badge>
+            </span>
+            <div>
+              <Button variant="success" onClick={() => toggleComplete(task.id)} className="me-2">
+                {task.completed ? 'Відновити' : 'Завершити'}
+              </Button>
+              <Button variant="danger" onClick={() => deleteTask(task.id)}>
+                Видалити
+              </Button>
+            </div>
+          </ListGroup.Item>
         ))}
-      </ul>
+      </ListGroup>
     </div>
   );
-};
+}
 
 export default TodoList;
