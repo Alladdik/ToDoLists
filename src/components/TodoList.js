@@ -12,8 +12,12 @@ const TodoList = () => {
 
   useEffect(() => {
     const fetchItems = async () => {
-      const response = await axios.get('/api/todo');
-      setItems(response.data);
+      try {
+        const response = await axios.get('http://localhost:3001/api/todos');
+        setItems(response.data);
+      } catch (error) {
+        console.error('Error fetching items:', error);
+      }
     };
     fetchItems();
   }, []);
@@ -33,14 +37,22 @@ const TodoList = () => {
       return;
     }
 
-    const response = await axios.post('/api/todo', newItem);
-    setItems([...items, response.data]);
-    setNewItem({ title: '', description: '', dueDate: '', category: '' });
+    try {
+      const response = await axios.post('http://localhost:3001/api/todos', newItem);
+      setItems([...items, { id: response.data.id, ...newItem }]);
+      setNewItem({ title: '', description: '', dueDate: '', category: '' });
+    } catch (error) {
+      console.error('Error adding item:', error);
+    }
   };
 
   const deleteItem = async (id) => {
-    await axios.delete(`/api/todo/${id}`);
-    setItems(items.filter(item => item.id !== id));
+    try {
+      await axios.delete(`http://localhost:3001/api/todos/${id}`);
+      setItems(items.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
   };
 
   return (
